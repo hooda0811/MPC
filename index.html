@@ -1,0 +1,1435 @@
+	<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MPC Dashboard Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .card-row { background: #fff; box-shadow: 0 1px 6px rgba(15,23,42,.06); border: 1px solid #e2e8f0; }
+    @media (max-width: 1024px) {
+      main { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+      #app .rounded-3xl { border-radius: 1.5rem; }
+    }
+    @media (max-width: 767px) {
+      #app main { padding-top: 8.25rem !important; }
+      .card-row { box-shadow: 0 1px 4px rgba(15,23,42,.06); }
+    }
+    @media print {
+      body { background: #fff !important; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+  <div id="loginPage" class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-white rounded-3xl shadow-xl p-6 border border-slate-200">
+      <div class="mb-6 text-center">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-900 text-white mx-auto mb-3">
+          <span class="text-xl font-bold">M</span>
+        </div>
+        <h1 class="text-2xl font-bold">MPC Login</h1>
+        <p class="text-sm text-slate-500 mt-1">Demo Maintenance Planning & Control</p>
+      </div>
+      <label class="text-sm font-medium">Username</label>
+      <input id="username" class="w-full mt-1 mb-3 p-3 rounded-2xl border border-slate-300 outline-none focus:ring-2 focus:ring-slate-400" placeholder="operator / maint / vendor" />
+      <label class="text-sm font-medium">Password</label>
+      <input id="password" type="password" class="w-full mt-1 mb-4 p-3 rounded-2xl border border-slate-300 outline-none focus:ring-2 focus:ring-slate-400" placeholder="123" />
+      <button onclick="login()" class="w-full rounded-2xl bg-slate-900 text-white py-3 font-semibold hover:bg-slate-700 transition">Login</button>
+      <div class="mt-4 text-xs text-slate-500 leading-5 bg-slate-50 rounded-2xl p-3 border border-slate-200">
+        Dummy akun: operator / 123 • maint / 123 • vendor / 123
+      </div>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm no-print">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold leading-tight">MPC Dashboard</h2>
+          <p class="text-xs text-slate-500" id="headerRole">Role: -</p>
+        </div>
+        <div class="hidden lg:flex items-center gap-2">
+          <button id="downloadWoBtn" onclick="downloadWOReport()" class="hidden px-3 py-2 rounded-2xl border border-slate-300 bg-white text-sm font-medium hover:bg-slate-50">Download WO</button>
+          <button id="downloadUserBtn" onclick="downloadUsers()" class="hidden px-3 py-2 rounded-2xl border border-slate-300 bg-white text-sm font-medium hover:bg-slate-50">Download User</button>
+          <button onclick="logout()" class="px-4 py-2 rounded-2xl bg-rose-600 text-white text-sm font-semibold hover:bg-rose-500">Logout</button>
+        </div>
+        <button onclick="toggleMobileActions()" class="lg:hidden inline-flex items-center justify-center w-11 h-11 rounded-2xl border border-slate-300 bg-white text-slate-700" aria-label="Menu cepat">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <div id="mobileActionBar" class="hidden lg:hidden fixed top-[62px] left-0 right-0 z-40 no-print px-4 pt-2">
+      <div class="rounded-3xl border border-slate-200 bg-white/95 backdrop-blur shadow-sm p-2">
+        <div class="grid grid-cols-4 gap-2 text-[11px]">
+          <button onclick="downloadWOReport()" class="inline-flex flex-col items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-900 text-white">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>
+            </span>
+            WO
+          </button>
+          <button onclick="scrollToFilters()" class="inline-flex flex-col items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-900 text-white">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18"></path><path d="M6 12h12"></path><path d="M10 19h4"></path></svg>
+            </span>
+            Filter
+          </button>
+          <button onclick="openHelpModal()" class="inline-flex flex-col items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-900 text-white">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+            </span>
+            Info
+          </button>
+          <button onclick="logout()" class="inline-flex flex-col items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-rose-50 p-3">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-rose-600 text-white">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17l5-5-5-5"></path><path d="M15 12H3"></path><path d="M21 3v18"></path></svg>
+            </span>
+            Keluar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 pt-24 pb-16 space-y-5">
+      <section class="grid grid-cols-1 xl:grid-cols-4 gap-4">
+        <div class="xl:col-span-3 bg-white rounded-3xl shadow-sm border border-slate-200 p-4">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+            <div>
+              <h3 class="font-bold text-lg">Dashboard Status WO</h3>
+              <p class="text-sm text-slate-500">Review, Open, Progress, Done, Close</p>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs w-full md:w-auto">
+              <input id="chartFrom" type="date" class="p-2 rounded-2xl border border-slate-300 bg-white" />
+              <input id="chartTo" type="date" class="p-2 rounded-2xl border border-slate-300 bg-white" />
+              <button onclick="saveChartRange()" class="col-span-2 px-3 py-2 rounded-2xl bg-slate-900 text-white font-semibold">Simpan Range</button>
+              <button onclick="clearChartRange()" class="col-span-2 px-3 py-2 rounded-2xl bg-slate-100 text-slate-700 font-semibold">Reset Range</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="h-56 rounded-2xl border border-slate-200 p-3 bg-slate-50"><canvas id="statusChart"></canvas></div>
+            <div class="h-56 rounded-2xl border border-slate-200 p-3 bg-slate-50"><canvas id="vendorChart"></canvas></div>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+            <div class="h-56 rounded-2xl border border-slate-200 p-3 bg-slate-50"><canvas id="statusDonutChart"></canvas></div>
+            <div class="h-56 rounded-2xl border border-slate-200 p-3 bg-slate-50"><canvas id="vendorDonutChart"></canvas></div>
+          </div>
+          <div class="mt-3 text-xs text-slate-500" id="chartRangeLabel">Range grafik: semua data</div>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 space-y-3">
+          <h3 class="font-bold text-lg">Ringkasan</h3>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">Review<br><span id="countReview" class="text-2xl font-bold">0</span></div>
+            <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">Open<br><span id="countOpen" class="text-2xl font-bold">0</span></div>
+            <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">Progress<br><span id="countProgress" class="text-2xl font-bold">0</span></div>
+            <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">Done<br><span id="countDone" class="text-2xl font-bold">0</span></div>
+            <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">Validation<br><span id="countValidation" class="text-2xl font-bold">0</span></div>
+            <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">Approved<br><span id="countApproved" class="text-2xl font-bold">0</span></div>
+            <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">Close<br><span id="countClose" class="text-2xl font-bold">0</span></div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 text-sm pt-1">
+            <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">Low<br><span id="countLow" class="text-2xl font-bold">0</span></div>
+            <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">Medium<br><span id="countMed" class="text-2xl font-bold">0</span></div>
+            <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">High<br><span id="countHigh" class="text-2xl font-bold">0</span></div>
+            <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">Urgent<br><span id="countUrg" class="text-2xl font-bold">0</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4">
+          <div class="text-slate-500">3 Tahun Terakhir</div>
+          <div class="text-lg font-bold mt-1" id="period3y">0</div>
+          <div class="text-xs text-slate-500 mt-1" id="period3yRange"></div>
+        </div>
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4">
+          <div class="text-slate-500">1 Tahun Terakhir</div>
+          <div class="text-lg font-bold mt-1" id="period1y">0</div>
+          <div class="text-xs text-slate-500 mt-1" id="period1yRange"></div>
+        </div>
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4">
+          <div class="text-slate-500">1 Bulan Ini</div>
+          <div class="text-lg font-bold mt-1" id="period1m">0</div>
+          <div class="text-xs text-slate-500 mt-1" id="period1mRange"></div>
+        </div>
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4">
+          <div class="text-slate-500">Bulan Sebelumnya</div>
+          <div class="text-lg font-bold mt-1" id="periodPrev">0</div>
+          <div class="text-xs text-slate-500 mt-1" id="periodPrevRange"></div>
+        </div>
+      </section>
+
+      <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4">
+        <div class="flex flex-col lg:flex-row lg:items-end gap-3 justify-between mb-4">
+          <div>
+            <h3 class="font-bold text-lg">Filter WO</h3>
+            <p class="text-sm text-slate-500">Filter berdasarkan WO, status, priority, area, tag number, vendor, dan tanggal</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-3 w-full lg:w-auto">
+            <input id="filterWO" class="p-3 rounded-2xl border border-slate-300 bg-white" placeholder="No WO" />
+            <select id="filterStatus" class="p-3 rounded-2xl border border-slate-300 bg-white">
+              <option value="">All Status</option>
+              <option value="Review">Review</option>
+              <option value="Open">Open</option>
+              <option value="Progress">Progress</option>
+              <option value="Done">Done</option>
+              <option value="Validation">Validation</option>
+              <option value="Approved">Approved</option>
+              <option value="Close">Close</option>
+            </select>
+            <select id="filterPriority" class="p-3 rounded-2xl border border-slate-300 bg-white">
+              <option value="">All Priority</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Urgent">Urgent</option>
+            </select>
+            <input id="filterArea" class="p-3 rounded-2xl border border-slate-300 bg-white" placeholder="Area" />
+            <input id="filterTag" class="p-3 rounded-2xl border border-slate-300 bg-white" placeholder="Tag Number" />
+            <input id="filterVendor" class="p-3 rounded-2xl border border-slate-300 bg-white" placeholder="Vendor/Eksekutor" />
+            <input id="filterDate" type="date" class="p-3 rounded-2xl border border-slate-300 bg-white" />
+          </div>
+          <div class="flex gap-2">
+            <button onclick="renderAll()" class="px-4 py-3 rounded-2xl bg-slate-900 text-white font-semibold">Apply</button>
+            <button onclick="resetFilters()" class="px-4 py-3 rounded-2xl bg-slate-100 text-slate-700 font-semibold">Reset</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="operatorFormWrap" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 hidden">
+        <h3 class="font-bold text-lg mb-4">Form Request Operator</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input id="area" class="p-3 rounded-2xl border border-slate-300" placeholder="Area" />
+          <input id="tag" class="p-3 rounded-2xl border border-slate-300" placeholder="Tag Number" />
+          <input id="desc" class="p-3 rounded-2xl border border-slate-300 md:col-span-2" placeholder="Description" />
+          <textarea id="longDesc" class="p-3 rounded-2xl border border-slate-300 md:col-span-2" rows="4" placeholder="Detail temuan / kendala"></textarea>
+          <select id="priority" class="p-3 rounded-2xl border border-slate-300">
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+            <option value="Urgent">Urgent</option>
+          </select>
+          <div class="p-3 rounded-2xl border border-dashed border-slate-300 text-sm text-slate-500 md:col-span-1">
+            Upload gambar/video
+            <input id="operatorMedia" type="file" accept="image/*,video/*" class="mt-2 block w-full text-sm" multiple />
+          </div>
+        </div>
+        <div class="mt-4 flex justify-end">
+          <button onclick="submitWO()" class="px-5 py-3 rounded-2xl bg-emerald-600 text-white font-semibold">Submit WO</button>
+        </div>
+      </section>
+
+      <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 class="font-bold text-lg">Work Order List</h3>
+            <p class="text-sm text-slate-500">Klik icon untuk detail / edit sesuai role</p>
+          </div>
+        </div>
+        <div class="hidden lg:block overflow-x-auto">
+          <table class="min-w-full text-xs border-separate border-spacing-y-1 table-fixed">
+            <thead>
+              <tr class="text-left text-slate-500 text-xs">
+                <th class="py-2 px-2 whitespace-nowrap">No WO</th>
+                <th class="py-2 px-2 whitespace-nowrap">Area</th>
+                <th class="py-2 px-2 whitespace-nowrap">Tag</th>
+                <th class="py-2 px-2">Description</th>
+                <th class="py-2 px-2 whitespace-nowrap">Priority</th>
+                <th class="py-2 px-2 whitespace-nowrap">Status</th>
+                <th class="py-2 px-2 whitespace-nowrap">Eksekutor</th>
+                <th class="py-2 px-2 whitespace-nowrap">Schedule</th>
+                <th class="py-2 px-2 whitespace-nowrap">Created</th>
+                <th class="py-2 px-2 whitespace-nowrap">Close</th>
+                <th class="py-2 px-2 whitespace-nowrap">Action</th>
+                <th class="py-2 px-2 whitespace-nowrap">Delete</th>
+              </tr>
+            </thead>
+            <tbody id="woTable"></tbody>
+          </table>
+        </div>
+        <div id="woCardList" class="lg:hidden space-y-3"></div>
+      </section>
+
+      <section id="userSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 hidden">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 class="font-bold text-lg">Manage User</h3>
+            <p class="text-sm text-slate-500">Hanya maintenance yang bisa tambah, ubah nama, ganti password, dan hapus user</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+          <input id="newUserName" class="p-3 rounded-2xl border border-slate-300" placeholder="Username baru" />
+          <input id="newUserDisplay" class="p-3 rounded-2xl border border-slate-300" placeholder="Nama tampil" />
+          <input id="newUserPass" class="p-3 rounded-2xl border border-slate-300" placeholder="Password" />
+          <select id="newUserRole" class="p-3 rounded-2xl border border-slate-300 bg-white">
+            <option value="operator">Operator</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="vendor">Vendor</option>
+          </select>
+        </div>
+        <div class="flex justify-end mb-4">
+          <button onclick="addUser()" class="px-4 py-3 rounded-2xl bg-slate-900 text-white font-semibold">Tambah User</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-xs border-separate border-spacing-y-1 table-fixed">
+            <thead>
+              <tr class="text-left text-slate-500">
+                <th class="py-2 px-3">Username</th>
+                <th class="py-2 px-3">Nama</th>
+                <th class="py-2 px-3">Role</th>
+                <th class="py-2 px-3">Terdaftar</th>
+                <th class="py-2 px-3">Password Baru</th>
+                <th class="py-2 px-3">Action</th>
+              </tr>
+            </thead>
+            <tbody id="userTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="fixed bottom-3 left-0 right-0 z-50 pointer-events-none text-center px-4 no-print">
+      <div class="inline-flex items-center rounded-full border border-slate-200 bg-white/85 backdrop-blur px-4 py-2 text-xs font-medium text-slate-500 shadow-sm">
+        Created by Muhamad Nurul Huda
+      </div>
+    </footer>
+  </div>
+
+  <div id="modal" class="fixed inset-0 hidden items-center justify-center bg-black/50 z-50 p-4 no-print">
+    <div class="w-full max-w-2xl bg-white rounded-3xl shadow-xl border border-slate-200 p-5 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <h3 class="text-xl font-bold">Work Order Detail</h3>
+          <p class="text-sm text-slate-500">Detail request dan riwayat progress</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="printWOToPDF()" class="px-4 py-2 rounded-2xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700">PDF</button>
+          <button onclick="closeModal()" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200">✕</button>
+        </div>
+      </div>
+      <div id="modalDetail" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm"></div>
+      <div id="maintenanceForm" class="mt-5 hidden space-y-3">
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600" id="maintenanceLockHint">
+          Maintenance bisa update schedule, permit, dan catatan. Status hanya bisa berubah kalau WO sudah <span class="font-semibold">Approved</span>.
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <select id="modalStatus" class="p-3 rounded-2xl border border-slate-300 bg-white"></select>
+          <select id="modalVendor" class="p-3 rounded-2xl border border-slate-300 bg-white"></select>
+        </div>
+        <input id="maintenanceWoNumber" class="w-full p-3 rounded-2xl border border-slate-300" placeholder="No WO / Work Order Number" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input id="scheduleDate" type="datetime-local" class="p-3 rounded-2xl border border-slate-300 bg-white" />
+          <select id="discipline" class="p-3 rounded-2xl border border-slate-300 bg-white">
+            <option value="Rotating">Rotating</option>
+            <option value="Stationary">Stationary</option>
+            <option value="Electrical">Electrical</option>
+            <option value="Instrument">Instrument</option>
+            <option value="Civil">Civil</option>
+          </select>
+        </div>
+        <input id="maintenancePermit" class="w-full p-3 rounded-2xl border border-slate-300" placeholder="Permit / nomor izin kerja" />
+        <textarea id="maintenanceNote" class="w-full p-3 rounded-2xl border border-slate-300" rows="3" placeholder="Catatan maintenance"></textarea>
+        <div class="p-3 rounded-2xl border border-dashed border-slate-300 text-sm text-slate-500">
+          Upload foto/video oleh maintenance
+          <input id="maintenanceMedia" type="file" accept="image/*,video/*" class="mt-2 block w-full text-sm" multiple />
+        </div>
+        <button onclick="saveMaintenanceEdit()" class="px-5 py-3 rounded-2xl bg-slate-900 text-white font-semibold">Save Update</button>
+      </div>
+<div id="vendorForm" class="mt-5 hidden space-y-3">
+        <input id="vendorWoNumber" class="w-full p-3 rounded-2xl border border-slate-300" placeholder="No WO / Work Order Number" />
+        <input id="vendorPermit" class="w-full p-3 rounded-2xl border border-slate-300" placeholder="Permit / nomor izin kerja" />
+        <textarea id="vendorNote" class="w-full p-3 rounded-2xl border border-slate-300" rows="3" placeholder="Update progress pekerjaan..."></textarea>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="p-3 rounded-2xl border border-dashed border-slate-300 text-sm text-slate-500">
+            Upload foto/video progress
+            <input id="vendorMedia" type="file" accept="image/*,video/*" class="mt-2 block w-full text-sm" multiple />
+          </div>
+          <select id="vendorSignal" class="p-3 rounded-2xl border border-slate-300 bg-white">
+            <option value="">Status Update</option>
+            <option value="Progress">Progress</option>
+            <option value="Done">Done</option>
+          </select>
+        </div>
+        <button onclick="saveVendorUpdate()" class="px-5 py-3 rounded-2xl bg-emerald-600 text-white font-semibold">Submit Vendor Update</button>
+      </div>
+      <div id="operatorValidationForm" class="mt-5 hidden space-y-3">
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div class="font-semibold">Validation Operator</div>
+          <div class="text-sm text-slate-500 mt-1">WO dari vendor sudah selesai dan menunggu validasi operator.</div>
+        </div>
+        <textarea id="operatorValidationNote" class="w-full p-3 rounded-2xl border border-slate-300" rows="3" placeholder="Catatan validasi operator..."></textarea>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <button onclick="approveValidationToMaintenance()" class="px-5 py-3 rounded-2xl bg-slate-900 text-white font-semibold">Approve & Send to Maintenance</button>
+          <button onclick="rejectValidationBackToVendor()" class="px-5 py-3 rounded-2xl bg-amber-600 text-white font-semibold">Kembalikan ke Vendor</button>
+        </div>
+      </div>
+      <div class="mt-5">
+        <h4 class="font-semibold mb-2">History</h4>
+        <div id="modalHistory" class="space-y-2 text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <button onclick="openHelpModal()" class="fixed bottom-6 right-6 z-[70] no-print inline-flex items-center justify-center w-14 h-14 rounded-full bg-slate-900 text-white shadow-xl border border-slate-700 hover:scale-105 transition" aria-label="Petunjuk penggunaan">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 16v-4"></path>
+      <path d="M12 8h.01"></path>
+    </svg>
+  </button>
+
+  <div id="helpModal" onclick="if(event.target===this) closeHelpModal()" class="fixed inset-0 hidden items-center justify-center bg-black/60 z-[70] p-4 no-print">
+    <div class="w-full max-w-2xl bg-white rounded-3xl shadow-xl border border-slate-200 p-5 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <h3 class="text-xl font-bold">Petunjuk Penggunaan</h3>
+          <p class="text-sm text-slate-500">Berikut merupakan petunjuk penggunaan dashboard MPC.</p>
+        </div>
+        <button onclick="closeHelpModal()" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200">✕</button>
+      </div>
+
+      <div class="space-y-3 text-sm">
+        <div class="rounded-2xl border border-slate-200 p-4">
+          <div class="font-semibold mb-1">Alur singkat</div>
+          <div class="text-slate-600 leading-6">
+            Operator buat WO → Maintenance atur schedule/permit → Vendor kerjakan → Done → Validation operator → Approved → Maintenance cek akhir → Close.
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="rounded-2xl border border-slate-200 p-4">
+            <div class="font-semibold">Review</div>
+            <div class="text-slate-600 mt-1">WO baru masuk, belum diproses.</div>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-4">
+            <div class="font-semibold">Open</div>
+            <div class="text-slate-600 mt-1">WO sudah siap dikerjakan.</div>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-4">
+            <div class="font-semibold">Progress</div>
+            <div class="text-slate-600 mt-1">Pekerjaan sedang berjalan.</div>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-4">
+            <div class="font-semibold">Done</div>
+            <div class="text-slate-600 mt-1">Vendor selesai kerja, lanjut validasi operator.</div>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-4">
+            <div class="font-semibold">Validation</div>
+            <div class="text-slate-600 mt-1">Menunggu operator cek hasil vendor.</div>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-4">
+            <div class="font-semibold">Approved</div>
+            <div class="text-slate-600 mt-1">Operator sudah approve, menunggu close dari maintenance.</div>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-4 md:col-span-2">
+            <div class="font-semibold">Close</div>
+            <div class="text-slate-600 mt-1">WO selesai dan ditutup.</div>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-dashed border-slate-300 p-4 text-slate-500">
+          Catatan:.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mediaModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[60] p-4 no-print">
+    <div class="bg-white rounded-3xl shadow-xl max-w-4xl w-full p-4 relative">
+      <button onclick="closeMediaModal()" class="absolute right-3 top-3 w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200">✕</button>
+      <div id="mediaPreview" class="pt-6"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_STATE = '/api/state';
+    let currentRole = '';
+    let currentUser = '';
+    let selectedWOId = null;
+    let statusChartInstance = null;
+    let vendorChartInstance = null;
+    let statusDonutInstance = null;
+    let vendorDonutInstance = null;
+    let chartRange = { from: '', to: '' };
+
+    const statusLabels = ['Review', 'Open', 'Progress', 'Done', 'Validation', 'Approved', 'Close'];
+    const vendorLabelsBase = ['PPI', 'MA 8', 'Vendor B', 'Vendor C', 'Belum assign'];
+
+    const defaultUsers = [
+      { username: 'operator', displayName: 'Operator', password: '123', role: 'operator', registeredAt: new Date().toISOString() },
+      { username: 'maint', displayName: 'Maintenance', password: '123', role: 'maintenance', registeredAt: new Date().toISOString() },
+      { username: 'vendor', displayName: 'Vendor', password: '123', role: 'vendor', registeredAt: new Date().toISOString() },
+      { username: 'PPI', displayName: 'PPI', password: '123', role: 'vendor', registeredAt: new Date().toISOString() },
+      { username: 'VendorB', displayName: 'Vendor B', password: '123', role: 'vendor', registeredAt: new Date().toISOString() },
+      { username: 'VendorC', displayName: 'Vendor C', password: '123', role: 'vendor', registeredAt: new Date().toISOString() }
+    ];
+
+    let users = [];
+    let workOrders = [];
+
+    async function loadState() {
+      try {
+        const res = await fetch(API_STATE, { cache: 'no-store' });
+        if (!res.ok) throw new Error('Gagal load state');
+        const data = await res.json();
+        users = Array.isArray(data.users) && data.users.length ? data.users : defaultUsers;
+        workOrders = Array.isArray(data.workOrders) ? data.workOrders : [];
+        chartRange = data.chartRange || { from: '', to: '' };
+      } catch (e) {
+        users = defaultUsers;
+        workOrders = [];
+        chartRange = { from: '', to: '' };
+      }
+      const fromEl = document.getElementById('chartFrom');
+      const toEl = document.getElementById('chartTo');
+      if (fromEl) fromEl.value = chartRange.from || '';
+      if (toEl) toEl.value = chartRange.to || '';
+    }
+
+    async function saveState() {
+      chartRange = {
+        from: document.getElementById('chartFrom').value || '',
+        to: document.getElementById('chartTo').value || ''
+      };
+      await fetch(API_STATE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ users, workOrders, chartRange })
+      });
+    }
+
+    function persistUsers() { saveState().catch(console.error); }
+    function persistWO() { saveState().catch(console.error); }
+
+    function getSavedChartRange() {
+      return chartRange || { from: '', to: '' };
+    }
+
+    function applySavedChartRange() {
+      const range = getSavedChartRange();
+      document.getElementById('chartFrom').value = range.from || '';
+      document.getElementById('chartTo').value = range.to || '';
+      updateChartRangeLabel();
+    }
+
+    function saveChartRange() {
+      chartRange = {
+        from: document.getElementById('chartFrom').value || '',
+        to: document.getElementById('chartTo').value || ''
+      };
+      persistWO();
+      renderAll();
+      alert('Range grafik dan ringkasan sudah disimpan');
+    }
+
+    function clearChartRange() {
+      document.getElementById('chartFrom').value = '';
+      document.getElementById('chartTo').value = '';
+      chartRange = { from: '', to: '' };
+      persistWO();
+      renderAll();
+    }
+
+    function updateChartRangeLabel() {
+      const from = document.getElementById('chartFrom').value;
+      const to = document.getElementById('chartTo').value;
+      document.getElementById('chartRangeLabel').innerText = (from || to)
+        ? `Range grafik: ${from || '-'} s/d ${to || '-'}`
+        : 'Range grafik: semua data';
+    }
+
+    function scrollToFilters() {
+
+      const el = document.getElementById('filterWO') || document.getElementById('filterStatus');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function toggleMobileActions() {
+      const bar = document.getElementById('mobileActionBar');
+      if (!bar) return;
+      bar.classList.toggle('hidden');
+    }
+
+    async function login() {
+      if (!users.length) await loadState();
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value.trim();
+      const user = users.find(x => x.username === u && x.password === p);
+      if (!user) return alert('Login gagal');
+      currentRole = user.role;
+      currentUser = user.username;
+      sessionStorage.setItem('mpc_role', currentRole);
+      sessionStorage.setItem('mpc_user', currentUser);
+      document.getElementById('loginPage').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      applyRoleUI();
+      applySavedChartRange();
+      renderAll();
+    }
+
+    function logout() {
+      sessionStorage.removeItem('mpc_role');
+      sessionStorage.removeItem('mpc_user');
+      location.reload();
+    }
+
+    function applyRoleUI() {
+      const user = users.find(u => u.username === currentUser);
+      const titleName = user?.displayName || currentUser;
+      document.getElementById('headerRole').innerText = `Role: ${currentRole} | User: ${titleName}`;
+      document.getElementById('operatorFormWrap').classList.toggle('hidden', currentRole !== 'operator');
+      document.getElementById('userSection').classList.toggle('hidden', currentRole !== 'maintenance');
+      document.getElementById('downloadWoBtn').classList.remove('hidden');
+      if (currentRole === 'maintenance') document.getElementById('downloadUserBtn').classList.remove('hidden');
+      else document.getElementById('downloadUserBtn').classList.add('hidden');
+      const mobileBar = document.getElementById('mobileActionBar');
+      if (mobileBar) mobileBar.classList.add('hidden');
+    }
+
+    function esc(str) { return String(str ?? '').replace(/[&<>\"]/g, s => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[s])); }
+    function escAttr(str) { return esc(str).replace(/'/g, '&#39;'); }
+    function escJs(str) { return String(str ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' '); }
+
+    function formatDateTime(value) {
+      if (!value) return '-';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return String(value);
+      return d.toLocaleString('id-ID', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function getDisplayWoNumber(w) {
+      const num = String(w?.woNumber ?? '').trim();
+      return num || '-';
+    }
+
+    function getFileDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Gagal baca file'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function filesToMedia(fileList) {
+      const result = [];
+      for (const file of Array.from(fileList || [])) {
+        const url = await getFileDataURL(file);
+        result.push({ name: file.name, type: file.type, url });
+      }
+      return result;
+    }
+
+    async function submitWO() {
+      const now = new Date();
+      const media = await filesToMedia(document.getElementById('operatorMedia').files);
+      workOrders.unshift({
+        id: 'WO-' + Date.now(),
+        woNumber: '',
+        area: document.getElementById('area').value.trim(),
+        tag: document.getElementById('tag').value.trim(),
+        desc: document.getElementById('desc').value.trim(),
+        longDesc: document.getElementById('longDesc').value.trim(),
+        priority: document.getElementById('priority').value,
+        status: 'Review',
+        vendor: '-',
+        discipline: '-',
+        scheduleDate: '',
+        permit: '',
+        createdAt: now.toISOString(),
+        createdLabel: now.toLocaleString('id-ID'),
+        closedAt: '',
+        closedLabel: '',
+        createdBy: currentUser,
+        media,
+        history: [{ text: 'Request submitted by operator', time: now.toLocaleString('id-ID'), attachments: media }]
+      });
+      persistWO();
+      clearOperatorForm();
+      renderAll();
+      alert('WO berhasil dibuat. Nomor WO masih kosong dan bisa diisi oleh maintenance/vendor.');
+    }
+
+    function clearOperatorForm() {
+      ['area', 'tag', 'desc', 'longDesc', 'operatorMedia'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      document.getElementById('priority').value = 'Low';
+    }
+
+    function openModal(id) {
+      selectedWOId = id;
+      const w = workOrders.find(x => x.id === id);
+      if (!w) return;
+      const vendorDisplay = w.vendor === '-' ? '-' : w.vendor;
+      document.getElementById('modalDetail').innerHTML = `
+        <div class="rounded-2xl border border-slate-200 p-3"><span class="text-slate-500">WO</span><div class="font-semibold">${esc(getDisplayWoNumber(w))}</div></div>
+        <div class="rounded-2xl border border-slate-200 p-3"><span class="text-slate-500">Area</span><div class="font-semibold">${esc(w.area)}</div></div>
+        <div class="rounded-2xl border border-slate-200 p-3"><span class="text-slate-500">Tag Number</span><div class="font-semibold">${esc(w.tag)}</div></div>
+        <div class="rounded-2xl border border-slate-200 p-3"><span class="text-slate-500">Priority</span><div class="font-semibold">${esc(w.priority)}</div></div>
+        <div class="rounded-2xl border border-slate-200 p-3 md:col-span-2"><span class="text-slate-500">Description</span><div class="font-semibold">${esc(w.desc)}</div></div>
+        <div class="rounded-2xl border border-slate-200 p-3 md:col-span-2"><span class="text-slate-500">Detail Temuan</span><div class="font-semibold whitespace-pre-wrap">${esc(w.longDesc)}</div></div>
+        <div class="rounded-2xl border border-slate-200 p-3"><span class="text-slate-500">Status</span><div class="font-semibold">${esc(w.status)}</div></div>
+        <div class="rounded-2xl border border-slate-200 p-3"><span class="text-slate-500">Eksekutor</span><div class="font-semibold">${esc(vendorDisplay)}</div></div>
+        <div class="rounded-2xl border border-slate-200 p-3"><span class="text-slate-500">Discipline</span><div class="font-semibold">${esc(w.discipline || '-')}</div></div>
+        <div class="rounded-2xl border border-slate-200 p-3"><span class="text-slate-500">Schedule</span><div class="font-semibold">${esc(formatDateTime(w.scheduleDate))}</div></div>
+        <div class="rounded-2xl border border-slate-200 p-3"><span class="text-slate-500">Permit</span><div class="font-semibold">${esc(w.permit || '-')}</div></div>
+        <div class="rounded-2xl border border-slate-200 p-3"><span class="text-slate-500">Created</span><div class="font-semibold">${esc(w.createdLabel)}</div></div>
+        <div class="rounded-2xl border border-slate-200 p-3"><span class="text-slate-500">Close</span><div class="font-semibold">${esc(w.closedLabel || '-')}</div></div>
+      `;
+
+      const executorOptions = ['PPI', 'MA 8', 'Vendor B', 'Vendor C'].map(v => `<option value="${escAttr(v)}">${esc(v)}</option>`).join('');
+      document.getElementById('modalVendor').innerHTML = executorOptions;
+      document.getElementById('modalVendor').value = w.vendor === '-' ? 'PPI' : w.vendor;
+
+      const maintenanceStatusOptions = {
+        Validation: ['Validation'],
+        Approved: ['Approved', 'Close', 'Validation', 'Progress'],
+        Close: ['Close', 'Approved', 'Validation', 'Progress'],
+        Progress: ['Progress', 'Done', 'Approved', 'Close'],
+        Done: ['Done', 'Approved', 'Validation', 'Progress', 'Close'],
+        Open: ['Open', 'Progress', 'Done', 'Approved', 'Validation', 'Close'],
+        Review: ['Review', 'Open', 'Progress', 'Done', 'Approved', 'Validation', 'Close']
+      };
+      const statusOptions = maintenanceStatusOptions[w.status] || ['Open', 'Progress', 'Done', 'Approved', 'Validation', 'Close'];
+      document.getElementById('modalStatus').innerHTML = statusOptions.map(s => `<option value="${escAttr(s)}">${esc(s)}</option>`).join('');
+      document.getElementById('modalStatus').value = statusOptions.includes(w.status) ? w.status : statusOptions[0];
+      document.getElementById('modalStatus').disabled = (currentRole === 'maintenance' && w.status === 'Validation');
+      document.getElementById('maintenanceLockHint').classList.toggle('hidden', !(currentRole === 'maintenance' && w.status === 'Validation'));
+
+      document.getElementById('scheduleDate').value = w.scheduleDate || '';
+      document.getElementById('discipline').value = w.discipline || 'Rotating';
+      document.getElementById('maintenancePermit').value = w.permit || '';
+      document.getElementById('vendorPermit').value = w.permit || '';
+      document.getElementById('maintenanceWoNumber').value = w.woNumber || '';
+      document.getElementById('vendorWoNumber').value = w.woNumber || '';
+      document.getElementById('maintenanceNote').value = '';
+      document.getElementById('maintenanceMedia').value = '';
+      document.getElementById('vendorNote').value = '';
+      document.getElementById('vendorSignal').value = '';
+      document.getElementById('vendorMedia').value = '';
+
+      const maintenanceVisible = currentRole === 'maintenance';
+      const vendorVisible = currentRole === 'vendor' && ['Open', 'Progress'].includes(w.status);
+      const operatorVisible = currentRole === 'operator' && w.status === 'Validation';
+
+      document.getElementById('modalHistory').innerHTML = renderHistory(w.history || []);
+      document.getElementById('maintenanceForm').classList.toggle('hidden', !maintenanceVisible);
+      document.getElementById('vendorForm').classList.toggle('hidden', !vendorVisible);
+      document.getElementById('operatorValidationForm').classList.toggle('hidden', !operatorVisible);
+      document.getElementById('modal').classList.remove('hidden');
+      document.getElementById('modal').classList.add('flex');
+    }
+
+    function renderHistory(history) {
+      if (!history.length) return '<div class="text-slate-500">Belum ada history</div>';
+      return history.map(h => {
+        const attachHtml = (h.attachments || []).length ? `<div class="mt-2 flex flex-wrap gap-2">${(h.attachments || []).map((att, i) => `<button onclick="previewMedia('${escJs(att.url)}','${escJs(att.type)}','${escJs(att.name)}')" class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-medium">${eyeIcon()}<span>Lihat ${i + 1}</span></button>`).join('')}</div>` : '';
+        return `<div class="rounded-2xl border border-slate-200 p-3 bg-slate-50"><div class="font-medium">${esc(h.text)}</div><div class="text-xs text-slate-500 mt-1">${esc(h.time)}</div>${attachHtml}</div>`;
+      }).join('');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.add('hidden');
+      document.getElementById('modal').classList.remove('flex');
+      selectedWOId = null;
+    }
+
+    async function saveMaintenanceEdit() {
+      if (currentRole !== 'maintenance') return;
+      const w = workOrders.find(x => x.id === selectedWOId);
+      if (!w) return;
+
+      const media = await filesToMedia(document.getElementById('maintenanceMedia').files);
+      const prevStatus = w.status;
+      const prevPermit = w.permit || '';
+      const prevSchedule = w.scheduleDate || '';
+      const ts = new Date().toLocaleString('id-ID');
+
+      const requestedStatus = document.getElementById('modalStatus').value;
+      const isLockedValidation = prevStatus === 'Validation';
+      const nextStatus = isLockedValidation ? 'Validation' : requestedStatus;
+
+      w.vendor = document.getElementById('modalVendor').value;
+      w.scheduleDate = document.getElementById('scheduleDate').value;
+      w.discipline = document.getElementById('discipline').value;
+
+      const permitVal = document.getElementById('maintenancePermit').value.trim();
+      if (permitVal) w.permit = permitVal;
+
+      const woNumberVal = document.getElementById('maintenanceWoNumber').value.trim();
+      const prevWoNumber = w.woNumber || '';
+      w.woNumber = woNumberVal;
+
+      const note = document.getElementById('maintenanceNote').value.trim();
+      if (note || media.length) w.history.unshift({ text: note ? `Maintenance note: ${note}` : 'Maintenance upload', time: ts, attachments: media });
+      if (permitVal && permitVal !== prevPermit) w.history.unshift({ text: `Maintenance updated permit: ${permitVal}`, time: ts, attachments: [] });
+      if (woNumberVal && woNumberVal !== prevWoNumber) w.history.unshift({ text: `Maintenance updated WO number: ${woNumberVal}`, time: ts, attachments: [] });
+      if (!woNumberVal && prevWoNumber) w.history.unshift({ text: 'Maintenance cleared WO number', time: ts, attachments: [] });
+      if (w.scheduleDate && w.scheduleDate !== prevSchedule) w.history.unshift({ text: `Maintenance set schedule: ${formatDateTime(w.scheduleDate)}`, time: ts, attachments: [] });
+
+      if (isLockedValidation && requestedStatus !== 'Validation') {
+        w.history.unshift({ text: 'Maintenance attempted to change status while Validation; status kept locked', time: ts, attachments: [] });
+      }
+
+      if (!isLockedValidation) {
+        if (prevStatus === 'Approved' && nextStatus === 'Close') {
+          w.closedAt = new Date().toISOString();
+          w.closedLabel = ts;
+          w.history.unshift({ text: 'Maintenance closed WO after approval', time: ts, attachments: [] });
+        } else if (prevStatus === 'Approved' && nextStatus === 'Validation') {
+          w.history.unshift({ text: 'Maintenance sent WO back to operator for revalidation', time: ts, attachments: [] });
+        } else if (prevStatus === 'Approved' && nextStatus === 'Progress') {
+          w.history.unshift({ text: 'Maintenance sent WO back to vendor for rework', time: ts, attachments: [] });
+        }
+      }
+
+      if (prevStatus !== nextStatus) {
+        w.status = nextStatus;
+        if (nextStatus === 'Validation') {
+          w.history.unshift({ text: 'Maintenance updated status to Validation', time: ts, attachments: [] });
+        } else if (nextStatus === 'Approved') {
+          w.history.unshift({ text: 'Maintenance marked WO as Approved', time: ts, attachments: [] });
+        } else if (!(prevStatus === 'Approved' && nextStatus === 'Close')) {
+          w.history.unshift({ text: `Maintenance updated status to ${nextStatus}`, time: ts, attachments: [] });
+        }
+      }
+
+      persistWO();
+      closeModal();
+      renderAll();
+    }
+
+    async function saveVendorUpdate() {
+      if (currentRole !== 'vendor') return;
+      const w = workOrders.find(x => x.id === selectedWOId);
+      if (!w) return;
+      if (!['Open', 'Progress'].includes(w.status)) return alert('Vendor hanya bisa update saat status Open atau Progress');
+
+      const media = await filesToMedia(document.getElementById('vendorMedia').files);
+      const note = document.getElementById('vendorNote').value.trim();
+      const signal = document.getElementById('vendorSignal').value;
+      const permitVal = document.getElementById('vendorPermit').value.trim();
+      const prevPermit = w.permit || '';
+      const ts = new Date().toLocaleString('id-ID');
+      const woNumberVal = document.getElementById('vendorWoNumber').value.trim();
+      const prevWoNumber = w.woNumber || '';
+
+      if (permitVal) w.permit = permitVal;
+      if (woNumberVal) w.woNumber = woNumberVal;
+      if (note || media.length) w.history.unshift({ text: note ? `Vendor update: ${note}` : 'Vendor upload', time: ts, attachments: media });
+      if (permitVal && permitVal !== prevPermit) w.history.unshift({ text: `Vendor updated permit: ${permitVal}`, time: ts, attachments: [] });
+      if (woNumberVal && woNumberVal !== prevWoNumber) w.history.unshift({ text: `Vendor updated WO number: ${woNumberVal}`, time: ts, attachments: [] });
+
+      if (signal === 'Done') {
+        w.status = 'Validation';
+        w.history.unshift({ text: 'Vendor marked WO as Done and sent to operator for validation', time: ts, attachments: [] });
+      } else if (signal === 'Progress') {
+        w.status = 'Progress';
+        w.history.unshift({ text: 'Vendor set status Progress', time: ts, attachments: [] });
+      } else {
+        w.status = 'Progress';
+        w.history.unshift({ text: 'Vendor submitted update', time: ts, attachments: [] });
+      }
+
+      persistWO();
+      closeModal();
+      renderAll();
+    }
+
+    function approveValidationToMaintenance() {
+      if (currentRole !== 'operator') return;
+      const w = workOrders.find(x => x.id === selectedWOId);
+      if (!w || w.status !== 'Validation') return;
+      const note = document.getElementById('operatorValidationNote').value.trim();
+      const ts = new Date().toLocaleString('id-ID');
+      if (note) w.history.unshift({ text: `Operator validation note: ${note}`, time: ts, attachments: [] });
+      w.status = 'Approved';
+      w.history.unshift({ text: 'Operator approved WO and sent back to maintenance', time: ts, attachments: [] });
+      persistWO();
+      closeModal();
+      renderAll();
+    }
+
+    function rejectValidationBackToVendor() {
+      if (currentRole !== 'operator') return;
+      const w = workOrders.find(x => x.id === selectedWOId);
+      if (!w || w.status !== 'Validation') return;
+      const note = document.getElementById('operatorValidationNote').value.trim();
+      const ts = new Date().toLocaleString('id-ID');
+      if (note) w.history.unshift({ text: `Operator rejection note: ${note}`, time: ts, attachments: [] });
+      w.status = 'Progress';
+      w.history.unshift({ text: 'Operator returned WO to vendor', time: ts, attachments: [] });
+      persistWO();
+      closeModal();
+      renderAll();
+    }
+
+    function deleteWO(id) {
+      const target = workOrders.find(x => x.id === id);
+      if (!target) return;
+      if (currentRole === 'operator' && target.status !== 'Review') return alert('Operator hanya bisa hapus WO saat status Review');
+      if (!confirm('Hapus WO ini?')) return;
+      workOrders = workOrders.filter(x => x.id !== id);
+      persistWO();
+      renderAll();
+    }
+
+    function addUser() {
+      if (currentRole !== 'maintenance') return;
+      const username = document.getElementById('newUserName').value.trim();
+      const displayName = document.getElementById('newUserDisplay').value.trim() || username;
+      const password = document.getElementById('newUserPass').value.trim();
+      const role = document.getElementById('newUserRole').value;
+      if (!username || !password) return alert('Username dan password wajib diisi');
+      if (users.some(u => u.username === username)) return alert('Username sudah ada');
+      users.unshift({ username, displayName, password, role, registeredAt: new Date().toISOString() });
+      persistUsers();
+      renderAll();
+      document.getElementById('newUserName').value = '';
+      document.getElementById('newUserDisplay').value = '';
+      document.getElementById('newUserPass').value = '';
+      document.getElementById('newUserRole').value = 'operator';
+    }
+
+    function saveDisplayName(username) {
+      if (currentRole !== 'maintenance') return;
+      const input = document.getElementById(`display_${username}`);
+      const user = users.find(u => u.username === username);
+      if (!user || !input) return;
+      user.displayName = input.value.trim() || username;
+      persistUsers();
+      renderAll();
+    }
+
+    function changePassword(username) {
+      if (currentRole !== 'maintenance') return;
+      const newPass = document.getElementById(`pass_${username}`).value.trim();
+      if (!newPass) return alert('Password baru wajib diisi');
+      const user = users.find(u => u.username === username);
+      if (!user) return;
+      user.password = newPass;
+      persistUsers();
+      renderAll();
+      alert(`Password ${username} berhasil diubah`);
+    }
+
+    function deleteUser(username) {
+      if (currentRole !== 'maintenance') return;
+      if (!confirm(`Hapus user ${username}?`)) return;
+      users = users.filter(u => u.username !== username);
+      persistUsers();
+      renderAll();
+    }
+
+    function getFilteredWorkOrders() {
+      const statusFilter = document.getElementById('filterStatus').value.trim();
+      const priorityFilter = document.getElementById('filterPriority').value.trim();
+      const areaFilter = document.getElementById('filterArea').value.trim().toLowerCase();
+      const tagFilter = document.getElementById('filterTag').value.trim().toLowerCase();
+      const woFilter = document.getElementById('filterWO').value.trim().toLowerCase();
+      const vendorFilter = document.getElementById('filterVendor').value.trim().toLowerCase();
+      const dateFilter = document.getElementById('filterDate').value;
+      return workOrders.filter(w => {
+        return (!statusFilter || w.status === statusFilter) &&
+               (!priorityFilter || w.priority === priorityFilter) &&
+               (!areaFilter || String(w.area || '').toLowerCase().includes(areaFilter)) &&
+               (!tagFilter || String(w.tag || '').toLowerCase().includes(tagFilter)) &&
+               (!woFilter || String((w.woNumber || w.id || '')).toLowerCase().includes(woFilter)) &&
+               (!vendorFilter || String(w.vendor || '').toLowerCase().includes(vendorFilter)) &&
+               (!dateFilter || String(w.createdAt || '').startsWith(dateFilter));
+      });
+    }
+
+    function downloadWOReport(sourceList = getFilteredWorkOrders()) {
+      const rows = sourceList.map(w => `<tr><td>${esc(getDisplayWoNumber(w))}</td><td>${esc(w.area)}</td><td>${esc(w.tag)}</td><td>${esc(w.desc)}</td><td>${esc(w.priority)}</td><td>${esc(w.status)}</td><td>${esc(w.vendor)}</td><td>${esc(w.discipline || '-')}</td><td>${esc(formatDateTime(w.scheduleDate))}</td><td>${esc(w.permit || '-')}</td><td>${esc(w.createdLabel)}</td><td>${esc(w.closedLabel || '-')}</td><td>${esc(w.createdBy)}</td></tr>`).join('');
+      const html = `<!doctype html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>WO Report</title><style>body{font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a;padding:24px}h1{margin:0 0 8px 0}.meta{color:#64748b;margin-bottom:16px}table{width:100%;border-collapse:collapse;background:#fff}th,td{border:1px solid #cbd5e1;padding:10px;vertical-align:top;font-size:12px}th{background:#e2e8f0;text-align:left}tr:nth-child(even){background:#f8fafc}</style></head><body><h1>Work Order Report</h1><div class="meta">Generated: ${new Date().toLocaleString('id-ID')}</div><table><thead><tr><th>No WO</th><th>Area</th><th>Tag Number</th><th>Description</th><th>Priority</th><th>Status</th><th>Eksekutor</th><th>Discipline</th><th>Schedule</th><th>Permit</th><th>Created</th><th>Close</th><th>Created By</th></tr></thead><tbody>${rows || '<tr><td colspan="13">Belum ada data</td></tr>'}</tbody></table></body></html>`;
+      downloadBlob(new Blob([html], { type: 'text/html;charset=utf-8' }), 'work-orders-report.html');
+    }
+
+    function downloadUsers() {
+      const rows = users.map(u => `<tr><td>${esc(u.username)}</td><td>${esc(u.displayName || u.username)}</td><td>${esc(u.role)}</td><td>${esc(new Date(u.registeredAt).toLocaleString('id-ID'))}</td></tr>`).join('');
+      const html = `<!doctype html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>User Report</title><style>body{font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a;padding:24px}h1{margin:0 0 8px 0}.meta{color:#64748b;margin-bottom:16px}table{width:100%;border-collapse:collapse;background:#fff}th,td{border:1px solid #cbd5e1;padding:10px;vertical-align:top;font-size:12px}th{background:#e2e8f0;text-align:left}</style></head><body><h1>User Report</h1><div class="meta">Generated: ${new Date().toLocaleString('id-ID')}</div><table><thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Terdaftar</th></tr></thead><tbody>${rows || '<tr><td colspan="4">Belum ada data</td></tr>'}</tbody></table></body></html>`;
+      downloadBlob(new Blob([html], { type: 'text/html;charset=utf-8' }), 'users-report.html');
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function resetFilters() {
+      ['filterWO', 'filterStatus', 'filterPriority', 'filterArea', 'filterTag', 'filterVendor', 'filterDate'].forEach(id => document.getElementById(id).value = '');
+      renderAll();
+    }
+
+    function filterByChartRange(items) {
+      const fromVal = document.getElementById('chartFrom').value;
+      const toVal = document.getElementById('chartTo').value;
+      const from = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+      const to = toVal ? new Date(toVal + 'T23:59:59') : null;
+      return items.filter(w => {
+        const d = new Date(w.createdAt);
+        if (from && d < from) return false;
+        if (to && d > to) return false;
+        return true;
+      });
+    }
+
+    function getDateRangeLabel(start, end) {
+      return `${start.toLocaleDateString('id-ID')} s/d ${end.toLocaleDateString('id-ID')}`;
+    }
+
+    function renderAll() {
+      renderDashboard();
+      renderWO();
+      renderUsers();
+    }
+
+    const barValuePlugin = {
+      id: 'barValuePlugin',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        ctx.save();
+        chart.data.datasets.forEach((dataset, di) => {
+          const meta = chart.getDatasetMeta(di);
+          meta.data.forEach((bar, i) => {
+            const value = dataset.data[i];
+            if (value === 0 || value === null || value === undefined) return;
+            const insideY = Math.min(bar.y + 16, bar.base - 6);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(value), bar.x, insideY);
+          });
+        });
+        ctx.restore();
+      }
+    };
+
+    function renderDashboard() {
+      const now = new Date();
+      const scopedWO = filterByChartRange(workOrders);
+      const counts = { Review: 0, Open: 0, Progress: 0, Done: 0, Validation: 0, Approved: 0, Close: 0, Low: 0, Medium: 0, High: 0, Urgent: 0 };
+      const vendorCounts = { PPI: 0, 'MA 8': 0, 'Vendor B': 0, 'Vendor C': 0, 'Belum assign': 0 };
+
+      scopedWO.forEach(w => {
+        counts[w.status] = (counts[w.status] || 0) + 1;
+        counts[w.priority] = (counts[w.priority] || 0) + 1;
+        const v = w.vendor && w.vendor !== '-' ? w.vendor : 'Belum assign';
+        if (!vendorCounts[v]) vendorCounts[v] = 0;
+        vendorCounts[v]++;
+      });
+
+      const y3Start = new Date(now); y3Start.setFullYear(y3Start.getFullYear() - 3);
+      const y1Start = new Date(now); y1Start.setFullYear(y1Start.getFullYear() - 1);
+      const m1Start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+      const period3yData = workOrders.filter(w => new Date(w.createdAt) >= y3Start && new Date(w.createdAt) <= now).length;
+      const period1yData = workOrders.filter(w => new Date(w.createdAt) >= y1Start && new Date(w.createdAt) <= now).length;
+      const period1mData = workOrders.filter(w => new Date(w.createdAt) >= m1Start && new Date(w.createdAt) <= now).length;
+      const periodPrevData = workOrders.filter(w => { const d = new Date(w.createdAt); return d >= prevMonthStart && d <= prevMonthEnd; }).length;
+
+      document.getElementById('period3y').innerText = period3yData;
+      document.getElementById('period1y').innerText = period1yData;
+      document.getElementById('period1m').innerText = period1mData;
+      document.getElementById('periodPrev').innerText = periodPrevData;
+      document.getElementById('period3yRange').innerText = getDateRangeLabel(y3Start, now);
+      document.getElementById('period1yRange').innerText = getDateRangeLabel(y1Start, now);
+      document.getElementById('period1mRange').innerText = getDateRangeLabel(m1Start, now);
+      document.getElementById('periodPrevRange').innerText = getDateRangeLabel(prevMonthStart, prevMonthEnd);
+      updateChartRangeLabel();
+
+      document.getElementById('countReview').innerText = counts.Review;
+      document.getElementById('countOpen').innerText = counts.Open;
+      document.getElementById('countProgress').innerText = counts.Progress;
+      document.getElementById('countDone').innerText = counts.Done;
+      document.getElementById('countValidation').innerText = counts.Validation;
+      document.getElementById('countApproved').innerText = counts.Approved;
+      document.getElementById('countClose').innerText = counts.Close;
+      document.getElementById('countLow').innerText = counts.Low;
+      document.getElementById('countMed').innerText = counts.Medium;
+      document.getElementById('countHigh').innerText = counts.High;
+      document.getElementById('countUrg').innerText = counts.Urgent;
+
+      if (statusChartInstance) statusChartInstance.destroy();
+      if (vendorChartInstance) vendorChartInstance.destroy();
+      if (statusDonutInstance) statusDonutInstance.destroy();
+      if (vendorDonutInstance) vendorDonutInstance.destroy();
+
+      statusChartInstance = new Chart(document.getElementById('statusChart'), {
+        type: 'bar',
+        data: {
+          labels: statusLabels,
+          datasets: [{ label: 'WO', data: [counts.Review, counts.Open, counts.Progress, counts.Done, counts.Validation, counts.Approved, counts.Close], borderWidth: 1 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        },
+        plugins: [barValuePlugin]
+      });
+
+      const vendorVals = vendorLabelsBase.map(v => vendorCounts[v] || 0);
+      vendorChartInstance = new Chart(document.getElementById('vendorChart'), {
+        type: 'bar',
+        data: {
+          labels: vendorLabelsBase,
+          datasets: [{ label: 'WO by Vendor', data: vendorVals, borderWidth: 1 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        },
+        plugins: [barValuePlugin]
+      });
+
+      statusDonutInstance = new Chart(document.getElementById('statusDonutChart'), {
+        type: 'doughnut',
+        data: {
+          labels: statusLabels,
+          datasets: [{ data: [counts.Review, counts.Open, counts.Progress, counts.Done, counts.Validation, counts.Approved, counts.Close] }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        },
+        plugins: [
+          {
+            id: 'statusDonutPercent',
+            afterDraw(chart) {
+              const { ctx } = chart;
+              const meta = chart.getDatasetMeta(0);
+              const data = chart.data.datasets[0].data;
+              const total = data.reduce((a, b) => a + b, 0) || 1;
+              ctx.save();
+              meta.data.forEach((arc, i) => {
+                const value = data[i];
+                if (!value) return;
+                const percent = Math.round((value / total) * 100);
+                const angle = (arc.startAngle + arc.endAngle) / 2;
+                const radius = (arc.innerRadius + arc.outerRadius) / 2;
+                const x = arc.x + Math.cos(angle) * radius;
+                const y = arc.y + Math.sin(angle) * radius;
+                ctx.fillStyle = '#0f172a';
+                ctx.font = 'bold 11px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(percent + '%', x, y);
+              });
+              ctx.restore();
+            }
+          }
+        ]
+      });
+
+      vendorDonutInstance = new Chart(document.getElementById('vendorDonutChart'), {
+        type: 'doughnut',
+        data: {
+          labels: vendorLabelsBase,
+          datasets: [{ data: vendorVals }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        },
+        plugins: [
+          {
+            id: 'vendorDonutPercent',
+            afterDraw(chart) {
+              const { ctx } = chart;
+              const meta = chart.getDatasetMeta(0);
+              const data = chart.data.datasets[0].data;
+              const total = data.reduce((a, b) => a + b, 0) || 1;
+              ctx.save();
+              meta.data.forEach((arc, i) => {
+                const value = data[i];
+                if (!value) return;
+                const percent = Math.round((value / total) * 100);
+                const angle = (arc.startAngle + arc.endAngle) / 2;
+                const radius = (arc.innerRadius + arc.outerRadius) / 2;
+                const x = arc.x + Math.cos(angle) * radius;
+                const y = arc.y + Math.sin(angle) * radius;
+                ctx.fillStyle = '#0f172a';
+                ctx.font = 'bold 11px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(percent + '%', x, y);
+              });
+              ctx.restore();
+            }
+          }
+        ]
+      });
+    }
+
+    function renderWO() {
+      const tbody = document.getElementById('woTable');
+      const cardList = document.getElementById('woCardList');
+      tbody.innerHTML = '';
+      cardList.innerHTML = '';
+
+      const filtered = getFilteredWorkOrders();
+      filtered.forEach(w => {
+        const canDelete = currentRole === 'maintenance' || (currentRole === 'operator' && w.status === 'Review');
+        const actionIcon = currentRole === 'maintenance' ? pencilIcon() : eyeIcon();
+        const actionText = currentRole === 'operator' ? 'Status' : 'Action';
+        tbody.innerHTML += `
+          <tr class="card-row rounded-2xl">
+            <td class="py-1.5 px-2 font-semibold whitespace-nowrap text-[11px]">${esc(getDisplayWoNumber(w))}</td>
+            <td class="py-1.5 px-2 whitespace-nowrap text-[11px]">${esc(w.area)}</td>
+            <td class="py-1.5 px-2 whitespace-nowrap text-[11px]">${esc(w.tag)}</td>
+            <td class="py-1.5 px-2 max-w-[240px] text-[11px] whitespace-normal break-words leading-4">${esc(w.desc)}</td>
+            <td class="py-2 px-2"><span class="inline-flex px-2 py-1 rounded-full text-[11px] font-semibold ${priorityClass(w.priority)}">${esc(w.priority)}</span></td>
+            <td class="py-2 px-2"><span class="inline-flex px-2 py-1 rounded-full text-[11px] font-semibold ${statusClass(w.status)}">${esc(w.status)}</span></td>
+            <td class="py-1.5 px-2 whitespace-nowrap text-[11px]">${esc(w.vendor || '-')}</td>
+            <td class="py-1.5 px-2 whitespace-nowrap text-[11px]">${esc(formatDateTime(w.scheduleDate))}</td>
+            <td class="py-1.5 px-2 whitespace-nowrap text-[11px]">${esc(w.createdLabel)}</td>
+            <td class="py-1.5 px-2 whitespace-nowrap text-[11px]">${esc(w.closedLabel || '-')}</td>
+            <td class="py-1.5 px-2"><button onclick="openModal('${escJs(w.id)}')" class="inline-flex items-center gap-2 px-2 py-2 rounded-xl bg-slate-900 text-white text-[11px] font-semibold hover:bg-slate-700">${actionIcon}<span>${actionText}</span></button></td>
+            <td class="py-1.5 px-2">${canDelete ? `<button onclick="deleteWO('${escJs(w.id)}')" class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-300 hover:bg-rose-50 text-slate-700">${trashIcon()}</button>` : '<span class="text-slate-300 text-xs">-</span>'}</td>
+          </tr>
+        `;
+        cardList.innerHTML += `
+          <div class="card-row rounded-3xl p-4 space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-[11px] text-slate-500">No WO</div>
+                <div class="font-bold">${esc(getDisplayWoNumber(w))}</div>
+              </div>
+              <span class="inline-flex px-3 py-1 rounded-full text-[11px] font-semibold ${statusClass(w.status)}">${esc(w.status)}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-[11px]">
+              <div class="rounded-2xl bg-slate-50 p-2 border border-slate-200"><div class="text-slate-500">Area</div><div class="font-semibold">${esc(w.area)}</div></div>
+              <div class="rounded-2xl bg-slate-50 p-2 border border-slate-200"><div class="text-slate-500">Tag</div><div class="font-semibold">${esc(w.tag)}</div></div>
+              <div class="rounded-2xl bg-slate-50 p-2 border border-slate-200"><div class="text-slate-500">Priority</div><div class="font-semibold">${esc(w.priority)}</div></div>
+              <div class="rounded-2xl bg-slate-50 p-2 border border-slate-200"><div class="text-slate-500">Vendor</div><div class="font-semibold">${esc(w.vendor || '-')}</div></div>
+              <div class="rounded-2xl bg-slate-50 p-2 border border-slate-200 col-span-2"><div class="text-slate-500">Schedule</div><div class="font-semibold">${esc(formatDateTime(w.scheduleDate))}</div></div>
+              <div class="rounded-2xl bg-slate-50 p-2 border border-slate-200 col-span-2"><div class="text-slate-500">Created</div><div class="font-semibold">${esc(w.createdLabel)}</div></div>
+            </div>
+            <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200 text-sm">
+              <div class="text-slate-500 text-[11px]">Description</div>
+              <div class="font-medium leading-5">${esc(w.desc)}</div>
+            </div>
+            <div class="flex items-center justify-between gap-2 pt-1">
+              <button onclick="openModal('${escJs(w.id)}')" class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-900 text-white text-xs font-semibold">${actionIcon}<span>${actionText}</span></button>
+              <div class="flex items-center gap-2">
+                ${canDelete ? `<button onclick="deleteWO('${escJs(w.id)}')" class="inline-flex items-center justify-center w-10 h-10 rounded-2xl border border-slate-300">${trashIcon()}</button>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function renderUsers() {
+      if (currentRole !== 'maintenance') return;
+      const tbody = document.getElementById('userTable');
+      tbody.innerHTML = '';
+      users.forEach(u => {
+        tbody.innerHTML += `
+          <tr class="card-row rounded-2xl">
+            <td class="py-3 px-3 rounded-l-2xl font-semibold whitespace-nowrap">${esc(u.username)}</td>
+            <td class="py-3 px-3">
+              <input id="display_${escJs(u.username)}" class="w-full p-2 rounded-xl border border-slate-300" value="${escAttr(u.displayName || u.username)}" />
+              <button onclick="saveDisplayName('${escJs(u.username)}')" class="mt-2 px-3 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-semibold">Simpan Nama</button>
+            </td>
+            <td class="py-3 px-3 whitespace-nowrap">${esc(u.role)}</td>
+            <td class="py-3 px-3 whitespace-nowrap">${esc(new Date(u.registeredAt).toLocaleString('id-ID'))}</td>
+            <td class="py-3 px-3"><input id="pass_${escJs(u.username)}" class="w-full p-2 rounded-xl border border-slate-300" placeholder="Password baru" /></td>
+            <td class="py-3 px-3 rounded-r-2xl flex gap-2"><button onclick="changePassword('${escJs(u.username)}')" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold">Ganti</button><button onclick="deleteUser('${escJs(u.username)}')" class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-slate-300 hover:bg-rose-50 text-slate-700">${trashIcon()}</button></td>
+          </tr>
+        `;
+      });
+    }
+
+    function previewMedia(url, type, name) {
+      const wrap = document.getElementById('mediaPreview');
+      const isVideo = type && type.startsWith('video');
+      wrap.innerHTML = `
+        <div class="mb-3">
+          <div class="text-lg font-semibold">${esc(name || 'Media')}</div>
+          <div class="text-sm text-slate-500">${esc(type || '')}</div>
+        </div>
+        ${isVideo ? `<video controls class="w-full max-h-[75vh] rounded-2xl bg-black"><source src="${url}"></video>` : `<img src="${url}" alt="preview" class="w-full max-h-[75vh] object-contain rounded-2xl bg-slate-100" />`}
+      `;
+      document.getElementById('mediaModal').classList.remove('hidden');
+      document.getElementById('mediaModal').classList.add('flex');
+    }
+
+    function closeMediaModal() {
+      document.getElementById('mediaModal').classList.add('hidden');
+      document.getElementById('mediaModal').classList.remove('flex');
+      document.getElementById('mediaPreview').innerHTML = '';
+    }
+
+    function printWOToPDF() {
+      const w = workOrders.find(x => x.id === selectedWOId);
+      if (!w) return;
+      const historyHtml = (w.history || []).map(h => {
+        const attachmentBlock = (h.attachments || []).length ? `
+          <div style="margin-top:8px;">
+            ${(h.attachments || []).map(att => {
+              const isVideo = att.type && att.type.startsWith('video');
+              return isVideo
+                ? `<div style="font-size:12px;color:#475569;margin-top:6px;">Video: ${esc(att.name)}</div>`
+                : `<div style="margin-top:8px;"><img src="${att.url}" alt="${escAttr(att.name)}" style="max-width:100%;border-radius:12px;border:1px solid #cbd5e1;" /></div>`;
+            }).join('')}
+          </div>` : '';
+        return `<div style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;margin-bottom:10px;background:#f8fafc;"><div style="font-weight:700;">${esc(h.text)}</div><div style="font-size:12px;color:#64748b;margin-top:4px;">${esc(h.time)}</div>${attachmentBlock}</div>`;
+      }).join('');
+      const html = `
+        <!doctype html>
+        <html lang="id">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>${esc(getDisplayWoNumber(w))} - Detail WO</title>
+          <style>
+            body{font-family:Arial,sans-serif;color:#0f172a;padding:24px}
+            h1,h2,h3,p{margin:0}
+            .muted{color:#64748b}
+            .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+            .box{border:1px solid #cbd5e1;border-radius:16px;padding:12px}
+            .box .label{font-size:12px;color:#64748b;margin-bottom:4px}
+            .box .val{font-weight:700;white-space:pre-wrap}
+            .full{grid-column:1 / -1}
+            .history{margin-top:18px}
+            .section-title{font-size:16px;font-weight:700;margin:18px 0 10px}
+            @media print { .no-print{display:none} body{padding:0} }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="margin-bottom:16px;display:flex;gap:8px;align-items:center;">
+            <button onclick="window.print()" style="padding:10px 14px;border-radius:12px;border:1px solid #0f172a;background:#0f172a;color:#fff;font-weight:700;">Print / Save PDF</button>
+            <span class="muted">Gunakan print browser lalu simpan sebagai PDF.</span>
+          </div>
+          <h1>Work Order Detail</h1>
+          <p class="muted" style="margin-top:6px;">Generated: ${new Date().toLocaleString('id-ID')}</p>
+          <div class="grid">
+            <div class="box"><div class="label">WO</div><div class="val">${esc(getDisplayWoNumber(w))}</div></div>
+            <div class="box"><div class="label">Status</div><div class="val">${esc(w.status)}</div></div>
+            <div class="box"><div class="label">Area</div><div class="val">${esc(w.area)}</div></div>
+            <div class="box"><div class="label">Tag Number</div><div class="val">${esc(w.tag)}</div></div>
+            <div class="box"><div class="label">Priority</div><div class="val">${esc(w.priority)}</div></div>
+            <div class="box"><div class="label">Eksekutor</div><div class="val">${esc(w.vendor || '-')}</div></div>
+            <div class="box full"><div class="label">Description</div><div class="val">${esc(w.desc)}</div></div>
+            <div class="box full"><div class="label">Detail Temuan</div><div class="val">${esc(w.longDesc || '-')}</div></div>
+            <div class="box"><div class="label">Discipline</div><div class="val">${esc(w.discipline || '-')}</div></div>
+            <div class="box"><div class="label">Schedule</div><div class="val">${esc(formatDateTime(w.scheduleDate))}</div></div>
+            <div class="box full"><div class="label">Permit</div><div class="val">${esc(w.permit || '-')}</div></div>
+            <div class="box"><div class="label">Created</div><div class="val">${esc(w.createdLabel || '-')}</div></div>
+            <div class="box"><div class="label">Close</div><div class="val">${esc(w.closedLabel || '-')}</div></div>
+          </div>
+          <div class="history">
+            <div class="section-title">History</div>
+            ${historyHtml || '<div class="muted">Belum ada history</div>'}
+          </div>
+        </body>
+        </html>
+      `;
+      const win = window.open('', '_blank', 'width=1100,height=900');
+      if (!win) return alert('Popup diblokir browser');
+      win.document.write(html);
+      win.document.close();
+      setTimeout(() => win.focus(), 300);
+    }
+
+    function eyeIcon() { return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>`; }
+    function pencilIcon() { return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>`; }
+    function trashIcon() { return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg>`; }
+
+    function statusClass(s) {
+      return {
+        Review: 'bg-slate-100 text-slate-700',
+        Open: 'bg-blue-100 text-blue-700',
+        Progress: 'bg-amber-100 text-amber-700',
+        Done: 'bg-emerald-100 text-emerald-700',
+        Validation: 'bg-violet-100 text-violet-700',
+        Approved: 'bg-emerald-100 text-emerald-700',
+        Close: 'bg-rose-100 text-rose-700'
+      }[s] || 'bg-slate-100 text-slate-700';
+    }
+
+    function priorityClass(p) {
+      return {
+        Low: 'bg-slate-100 text-slate-700',
+        Medium: 'bg-cyan-100 text-cyan-700',
+        High: 'bg-orange-100 text-orange-700',
+        Urgent: 'bg-rose-100 text-rose-700'
+      }[p] || 'bg-slate-100 text-slate-700';
+    }
+
+    function openHelpModal() {
+      const modal = document.getElementById('helpModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeHelpModal() {
+      const modal = document.getElementById('helpModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeHelpModal();
+      }
+    });
+
+    async function initSession() {
+      const r = sessionStorage.getItem('mpc_role');
+      const u = sessionStorage.getItem('mpc_user');
+      if (r && u) {
+        currentRole = r;
+        currentUser = u;
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        applyRoleUI();
+        applySavedChartRange();
+        renderAll();
+      }
+    }
+
+    window.onload = async () => {
+      await loadState();
+      await initSession();
+    };
+
+    setInterval(async () => {
+      if (document.getElementById('app').classList.contains('hidden')) return;
+      await loadState();
+      renderAll();
+      applyRoleUI();
+    }, 15000);
+  </script>
+</body>
+</html>
